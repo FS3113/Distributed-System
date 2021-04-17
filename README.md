@@ -4,8 +4,8 @@
 
 This is a distributed system running on Owl, Owl2, Owl3, and Falcon (master).
 By default, the master has port number "3000". You can change it by modifying the variable "masterAddr" on line 29 in "daemon.go".
-It is working on a simple task: print current time (on receiving this task, a worker will sleep for 6 seconds before print the current time).
-Create more complicated tasks by changing the code under the two "to do"s.
+It is working on a simple task: print current time (on receiving this task, a worker will sleep for 6 seconds before printing the current time).
+Create more complicated tasks by changing the code under the two "to do"s in "daemon.go".
 
 ## Usage
 
