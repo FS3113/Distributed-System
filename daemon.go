@@ -73,8 +73,8 @@ func (daemon Daemon) receiver() {
 			fmt.Println("Start working on: " + message.Payload)
 
 			// to do: 
-			// change the following code to working on more complicated tasks
-			// instructions for tasks can be stored in "message.Payload"
+			// change the following code to work on more complicated tasks
+			// instructions for tasks can be stored in "message.Payload" (change line 142)
 			time.Sleep(6 * time.Second)
 			fmt.Println(time.Now())
 
