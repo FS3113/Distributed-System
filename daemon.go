@@ -10,8 +10,10 @@ import (
 	"time"
 	"sync"
 	"strings"
-	// "os/exec"
-	// "database/sql"
+	"os/exec"
+	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
+	"strconv"
 )
 
 type Daemon struct {
@@ -34,6 +36,11 @@ var currentTask = map[string]string {}
 var working = false
 var idToServerName = map[string]string { "172.22.224.119": "Owl2", "128.174.246.108": "Falcon", "172.22.224.10": "Owl", "172.22.224.120": "Owl3" }
 var mutex = &sync.Mutex{}
+
+// todo 1:
+// change username, pw, host, and dbname
+// db, err := sql.Open("mysql", "<username>:<pw>@tcp(<host>:<port>)/<dbname>")
+var db, _ = sql.Open("mysql", "juefeic2:0202141208@tcp(owl2.cs.illinois.edu:3306)/juefeic2_educationtoday")
 
 func (daemon Daemon) receiver() {
 	servaddr, err := net.ResolveUDPAddr("udp", ":" + daemon.Port)
@@ -72,11 +79,14 @@ func (daemon Daemon) receiver() {
 			working = true
 			fmt.Println("Start working on: " + message.Payload)
 
-			// to do: 
-			// change the following code to work on more complicated tasks
-			// instructions for tasks can be stored in "message.Payload" (change line 142)
-			time.Sleep(6 * time.Second)
-			fmt.Println(time.Now())
+			// todo 2: 
+			// change the following code to run your script
+			// instructions for tasks will be stored in "message.Payload" (see "todo 3")
+			_, err := exec.Command("python", "script.py", message.Payload).Output()
+			if err != nil {
+				log.Fatal("Error in executing Python script for : " + message.Payload)
+			}
+
 
 			fmt.Println("Finished " + message.Payload + "\n")
 			working = false
@@ -113,7 +123,12 @@ func (daemon Daemon) heartbeatManager() {
 			mutex.Lock()
 			for k, _ := range workerStatus {
 				if currentTime - workerTimeStamp[k] > 10 {
+
+					// todo 4
+					// handle worker failure
+					// when the master detects worker failures, the following code will be executed on the master side
 					log.Println(convertIdToServerName(k), "fails on task:", currentTask[k])
+
 					delete(workerStatus, k)
 					delete(workerTimeStamp, k)
 					delete(currentTask, k)
@@ -137,9 +152,18 @@ func (daemon Daemon) taskScheduler() {
 		for k, v := range(workerStatus) {
 			if !v {
 
-				// to do: 
-				// modify the instructions for tasks here (maybe read from a database containing a list tasks)
-				var task = "print current time"
+				// todo 3:
+				// read a task from the table "Tasks"
+				// change this code to read a task from your list of tasks
+				var p int
+				_ = db.QueryRow("select min(priority) from Tasks").Scan(&p)
+				var task string
+				err := db.QueryRow("select task from Tasks where priority = ?", strconv.Itoa(p)).Scan(&task)
+				if err != nil {
+					fmt.Println(err)
+				}
+				_ = db.QueryRow("update Tasks set priority = 2147483647 where task = ?", task).Scan()
+
 
 				go daemon.sender(k, "TASK", task)
 				currentTask[k] = task
@@ -152,6 +176,8 @@ func (daemon Daemon) taskScheduler() {
 }
 
 func main() {
+	// verify that MySQL is connected
+	db.Ping()
 	arguments := os.Args
 	if len(arguments) == 1 {
 		fmt.Println("Please provide a host:port string")
